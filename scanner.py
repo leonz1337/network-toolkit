@@ -51,6 +51,48 @@ def threader(target,q):
         port = q.get()
         scan_port(target,port)
         q.task_done()
+        
+import requests
+
+RED = "\033[91m"
+GREEN = "\033[92m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
+
+
+def check_internetdb(ip):
+    print(f"\n{CYAN}[*] Querying Shodan InternetDB...{RESET}")
+
+    url = f"https://internetdb.shodan.io/{ip}"
+
+    try:
+        r = requests.get(url, timeout=10)
+
+        if r.status_code != 200:
+            print(f"{RED}[-] InternetDB query failed{RESET}")
+            return
+
+        data = r.json()
+
+        print(f"\n{CYAN}Host:{RESET} {ip}")
+        print(f"{GREEN}Ports:{RESET} {data.get('ports', [])}")
+        print(f"{GREEN}Hostnames:{RESET} {data.get('hostnames', [])}")
+
+        print(f"\n{CYAN}Detected Software (CPE):{RESET}")
+        for cpe in data.get("cpes", []):
+            print(" ", cpe)
+
+        vulns = data.get("vulns", [])
+
+        if vulns:
+            print(f"\n{RED}Known Vulnerabilities:{RESET}")
+            for v in vulns:
+                print(" ", v)
+        else:
+            print(f"\n{GREEN}No vulnerabilities listed in InternetDB{RESET}")
+
+    except Exception as e:
+        print("Error:", e)
 
         
 def main():
@@ -76,6 +118,7 @@ def main():
         q.put(port)
     q.join()
     print("[*]Finished Scanning....")
+    check_internetdb(target)
 
 if __name__ == "__main__":
     main()
