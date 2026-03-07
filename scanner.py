@@ -5,6 +5,7 @@ import threading
 import sys
 import argparse
 from queue import Queue
+import requests
 
 def get_args():
     parser = argparse.ArgumentParser(description="Multi-threaded Port Scanner")
@@ -39,12 +40,24 @@ def scan_port(target,port):
     try:
         if s.connect_ex((target,port))== 0:
             banner = s.recv(1024).decode()
+            service = get_service(port)
             with print_lock:
-                print(f"[+]{target}:{port} is OPEN with {banner}")
-                s.close()
+                 if banner:
+                      print(f"[+] {target}:{port} OPEN ({service}) {banner}")
+                      s.close()
+                 else:
+                      print(f"[+] {target}:{port} OPEN | {banner}")
+                      s.close()
+            
 
     except Exception:
         pass
+        
+def get_service(port):
+    try:
+        return socket.getservbyport(port)
+    except:
+        return "unknown"
 
 def threader(target,q):
     while True:
@@ -52,16 +65,8 @@ def threader(target,q):
         scan_port(target,port)
         q.task_done()
         
-import requests
-
-RED = "\033[91m"
-GREEN = "\033[92m"
-CYAN = "\033[96m"
-RESET = "\033[0m"
-
-
 def check_internetdb(ip):
-    print(f"\n{CYAN}[*] Querying Shodan InternetDB...{RESET}")
+    print(f"[*] Querying Shodan InternetDB...")
 
     url = f"https://internetdb.shodan.io/{ip}"
 
@@ -69,27 +74,20 @@ def check_internetdb(ip):
         r = requests.get(url, timeout=10)
 
         if r.status_code != 200:
-            print(f"{RED}[-] InternetDB query failed{RESET}")
+            print(f"[-] InternetDB query failed")
             return
 
         data = r.json()
 
-        print(f"\n{CYAN}Host:{RESET} {ip}")
-        print(f"{GREEN}Ports:{RESET} {data.get('ports', [])}")
-        print(f"{GREEN}Hostnames:{RESET} {data.get('hostnames', [])}")
+        print(f"[*]Host: {ip}")
+        print(f"[*]Ports: {data.get('ports', [])}")
+        print(f"[*]Hostnames: {data.get('hostnames', [])}")
 
-        print(f"\n{CYAN}Detected Software (CPE):{RESET}")
+        print(f"[+]Detected Software (CPE):")
         for cpe in data.get("cpes", []):
             print(" ", cpe)
 
-        vulns = data.get("vulns", [])
-
-        if vulns:
-            print(f"\n{RED}Known Vulnerabilities:{RESET}")
-            for v in vulns:
-                print(" ", v)
-        else:
-            print(f"\n{GREEN}No vulnerabilities listed in InternetDB{RESET}")
+        
 
     except Exception as e:
         print("Error:", e)
