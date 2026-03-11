@@ -90,7 +90,7 @@ python scanner.py -t 192.168.1.1 -p 1-5000 --threads 200
 
 ## Legal Disclaimer
 
-This tool is for educational purposes and authorized testing only. Unauthorized scanning of networks or systems may be illegal. Always ensure you have explicit permission before scanning any target.
+This tool is for educational purposes and authorized testing only. Unauthorized scanning of networks or systems may be illegal. Always ensure you have explicit permission before scanning  any target.
 
 ## Author
 
